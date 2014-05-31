@@ -18,6 +18,7 @@ io.sockets.on("connection", function (socket) {
 		// socket.broadcast.to().emit("receive", data);
 		//同じルーム内にいるユーザー全員に対してメッセージを送る
 		var room = get_first_joined_room(socket.store.id, socket.manager.rooms);
+		//未入室なら何もしない
 		if (!room) return;
 		console.log('test:'+util.inspect(room));
 		io.sockets.in(room).emit("receive", data);
