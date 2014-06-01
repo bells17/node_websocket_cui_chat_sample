@@ -1,12 +1,11 @@
 {
-  "name": "node_websocket_cui_chat_sample_socket-io_server",
+  "name": "node_websocket_cui_chat_sample_websocket_client",
   "version": "0.0.0",
-  "description": "socket.io cui chat server sample",
+  "description": "websocket cui chat client sample",
   "main": "app.js",
   "dependencies": {
-    "socket.io": "~0.9.16",
-    "underscore": "~1.6.0",
-    "http": "~0.0.0"
+    "shell": "~0.3.2",
+    "websocket": "~1.0.8"
   },
   "devDependencies": {},
   "scripts": {
