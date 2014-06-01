@@ -2,7 +2,7 @@ var util = require('util');
 var socket = require('socket.io-client');
 var socket = new socket.connect('http://localhost:3000');
 var shell = require('shell');
-var shell_app = new shell( { chdir: __dirname } )
+var shell_app = new shell( { chdir: __dirname } );
 var room; 
 //シェルの環境設定
 shell_app.configure(function() {

@@ -56,7 +56,7 @@ io.sockets.on("connection", function (socket) {
 function get_rooms(rooms) {
 	var ret = {};
 	for (key in rooms) {
-  	ret[key.slice(1)] = rooms[key].length;
+		ret[key.slice(1)] = rooms[key].length;
 	}
 	delete ret[''];
 	return ret;

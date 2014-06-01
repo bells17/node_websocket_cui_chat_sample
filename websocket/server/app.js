@@ -6,18 +6,18 @@ var port = 3000;
 
 //create http server
 var server = http.createServer(function(request, response) {
-    console.log((new Date()) + ' Received request for ' + request.url);
-    response.writeHead(404);
-    response.end();
+  console.log((new Date()) + ' Received request for ' + request.url);
+  response.writeHead(404);
+  response.end();
 });
 server.listen(port, function() {
-    console.log((new Date()) + ' Server is listening on port '+port);
+  console.log((new Date()) + ' Server is listening on port '+port);
 });
 
 //create websocket server
 wsServer = new WebSocketServer({
-    httpServer: server,
-    autoAcceptConnections: false
+  httpServer: server,
+  autoAcceptConnections: false
 });
 
 function originIsAllowed(origin) {
@@ -30,40 +30,39 @@ var connections = {};
 //{room_name : request.key}
 var rooms = {};
 
+//コネクション確立リクエスト時
 wsServer.on('request', function(request) {
-    if (!originIsAllowed(request.origin)) {
-      // Make sure we only accept requests from an allowed origin
-      request.reject();
-      console.log((new Date()) + ' Connection from origin ' + request.origin + ' rejected.');
-      return;
+  if (!originIsAllowed(request.origin)) {
+    // Make sure we only accept requests from an allowed origin
+    request.reject();
+    console.log((new Date()) + ' Connection from origin ' + request.origin + ' rejected.');
+    return;
+  }
+  //コネクション確立
+  var connection = request.accept('echo-protocol', request.origin);
+  //コネクション管理
+  connections[request.key] = connection;
+  console.log((new Date()) + ' Connection accepted.');
+  connection.on('message', function(message) {
+    if (message.type === 'utf8') {
+      //通常メッセージ
+      message = get_data(message);
+      console.log(util.inspect(message));
+      //イベントコール
+      call_event(message.event, request.key, message.data);
+    } else if (message.type === 'binary') {
+        //バイナリデータ
+        console.log('Received Binary Message of ' + message.binaryData.length + ' bytes');
+        connection.sendBytes(message.binaryData);
     }
-
-    var connection = request.accept('echo-protocol', request.origin);
-    //コネクション管理
-    connections[request.key] = connection;
-    console.log((new Date()) + ' Connection accepted.');
-    connection.on('message', function(message) {
-        if (message.type === 'utf8') {
-          //通常メッセージ
-          message = get_data(message);
-          console.log(util.inspect(message));
-          call_event(message.event, request.key, message.data);
-          if (0) {
-            console.log(util.inspect(connections));
-            console.log(util.inspect(rooms));
-          }
-        } else if (message.type === 'binary') {
-            //バイナリデータ
-            console.log('Received Binary Message of ' + message.binaryData.length + ' bytes');
-            connection.sendBytes(message.binaryData);
-        }
-    });
-    connection.on('close', function(reasonCode, description) {
-        console.log((new Date()) + ' Peer ' + connection.remoteAddress + ' disconnected.');
-        //管理しているコネクションリストから削除
-        delete connections[request.key];
-        _leave(request.key);
-    });
+  });
+  //コネクション切断時
+  connection.on('close', function(reasonCode, description) {
+    console.log((new Date()) + ' Peer ' + connection.remoteAddress + ' disconnected.');
+    //管理しているコネクションリストから削除
+    delete connections[request.key];
+    _leave(request.key);
+  });
 });
 
 //本人のみに送る
@@ -95,12 +94,12 @@ function broadcast(event, response_object) {
 
 //成功時
 function send_success(connection_key, event, response_object, type) {
-  type = type ? type : 'send';
+  var type = type ? type : 'send';
   response_object.message = 'success';
   if (type == 'send') {
-      send(connection_key, event, response_object);
+    send(connection_key, event, response_object);
   } else if (type == 'broadcast') {
-      broadcast(event, response_object);
+    broadcast(event, response_object);
   } else if (type == 'room') {
     broadcast_room(connection_key, event, response_object);
   }
@@ -108,12 +107,12 @@ function send_success(connection_key, event, response_object, type) {
 
 //失敗時
 function send_failed(connection_key, event, response_object, type) {
-  type = type ? type : 'send';
+  var type = type ? type : 'send';
   response_object.message = 'failed';
   if (type == 'send') {
-      send(connection_key, event, response_object);
+    send(connection_key, event, response_object);
   } else if (type == 'broadcast') {
-      broadcast(event, response_object);
+    broadcast(event, response_object);
   } else if (type == 'room') {
     broadcast_room(connection_key, event, response_object);
   }
@@ -137,7 +136,7 @@ function call_event(event_name, request_key, data) {
   if (event_name == 'rooms') {
     event_rooms(request_key, data);
   } else if (event_name == 'join') {
-      event_join(request_key, data);
+    event_join(request_key, data);
   } else if (event_name == 'leave') {
     event_leave(request_key, data);
   } else if (event_name == 'send') {
@@ -170,8 +169,7 @@ function event_join(request_key, data) {
     rooms[data.room] = [];
   }
   rooms[data.room].push(request_key);
-  // send_success(request_key, event, response);
-  send_success(request_key, event, response, 'room'); 
+  send_success(request_key, event, response);
 }
 
 function event_leave(request_key, data) {
@@ -186,13 +184,14 @@ function event_leave(request_key, data) {
 }
 
 function _leave(request_key) {
-  for (var key in rooms) {
-    var request_key_index = rooms[key].indexOf(request_key);
+  for (var room_name in rooms) {
+    var request_key_index = rooms[room_name].indexOf(request_key);
     if (request_key_index >= 0) {
-      delete rooms[key][request_key_index];
-      if (rooms[key].length < 1) {
-        delete rooms[key];
+      delete rooms[room_name][request_key_index];
+      if (rooms[room_name].length < 1) {
+        delete rooms[room_name];
       }
+      console.log(util.inspect(rooms));
       return true;
     }
   }
@@ -203,6 +202,6 @@ function event_send(request_key, data) {
   var event = 'receive';
   var response = {};
   console.log(event+' called. '+util.inspect(data));
-  response.send_message = data.send_message;
+  response.msg = data.msg;
   send_success(request_key, event, response, 'room');
 }
