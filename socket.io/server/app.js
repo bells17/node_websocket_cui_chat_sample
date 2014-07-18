@@ -30,13 +30,9 @@ io.sockets.on("connection", function (socket) {
 	});
 	//ルームに入室
 	socket.on("join", function (data) {
-		if (data.room in rooms) {
-			socket.join(data.room);
-			console.log('test '+util.inspect(socket.manager));
-			io.sockets.socket(socket.id).emit('joined', {response_code:0, joined_room:data.room});
-		} else {
-			io.sockets.socket(socket.id).emit('joined', {response_code:1, joined_room:'failed'});
-		}
+		socket.join(data.room);
+		console.log('test '+util.inspect(socket.manager));
+		io.sockets.socket(socket.id).emit('joined', {response_code:0, joined_room:data.room});
 	});
 	//ルームから退出
 	socket.on("leave", function (data) {
